@@ -33,9 +33,12 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// Note: In serverless (Vercel), we handle connection inside routes using lib/dbConnect.js
+// For local dev, we can connect here if needed, but it's better to rely on the route-level connection
+if (process.env.NODE_ENV !== 'production') {
+  const connectDB = require('./lib/dbConnect');
+  connectDB().then(() => console.log('MongoDB connected locally'));
+}
 
 // Routes
 app.get('/', (req, res) => {

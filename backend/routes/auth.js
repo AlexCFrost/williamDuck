@@ -3,21 +3,16 @@ const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
+const connectDB = require('../lib/dbConnect');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/google', async (req, res) => {
     const { token } = req.body;
 
-    // Check DB connection
-    if (mongoose.connection.readyState !== 1) {
-        return res.status(500).json({
-            message: 'Database not connected',
-            readyState: mongoose.connection.readyState
-        });
-    }
-
     try {
+        await connectDB();
+
         // Fetch user info using access token
         const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: {

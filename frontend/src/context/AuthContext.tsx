@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 import api from '../lib/api';
 
 interface User {
@@ -31,55 +32,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
     }, []);
 
-    useEffect(() => {
-        // Load Google Identity Services script
-        const script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.defer = true;
-        document.body.appendChild(script);
-
-        script.onload = () => {
-            if (window.google) {
-                window.google.accounts.id.initialize({
-                    client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-                    callback: handleCredentialResponse,
+    const login = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                console.log('Got access token, fetching user info...');
+                // First get user info from Google
+                const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: {
+                        Authorization: `Bearer ${tokenResponse.access_token}`,
+                    },
                 });
+
+                const userInfo = await userInfoResponse.json();
+                console.log('User info:', userInfo);
+
+                // Then send to our backend
+                const res = await api.post('/auth/google', {
+                    token: tokenResponse.access_token,
+                });
+                const { token, user } = res.data;
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+                setUser(user);
+                console.log('Login successful!');
+            } catch (error) {
+                console.error('Login failed:', error);
             }
-        };
-
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
-
-    const handleCredentialResponse = async (response: any) => {
-        try {
-            const res = await api.post('/auth/google', {
-                token: response.credential,
-            });
-            const { token, user } = res.data;
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            setUser(user);
-        } catch (error) {
-            console.error('Login failed:', error);
-        }
-    };
-
-    const login = () => {
-        if (window.google) {
-            window.google.accounts.id.prompt();
-        }
-    };
+        },
+        onError: () => console.log('Login Failed'),
+    });
 
     const logout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
-        if (window.google) {
-            window.google.accounts.id.disableAutoSelect();
-        }
     };
 
     return (
@@ -96,10 +82,3 @@ export const useAuth = () => {
     }
     return context;
 };
-
-// Type declaration for Google Identity Services
-declare global {
-    interface Window {
-        google?: any;
-    }
-}

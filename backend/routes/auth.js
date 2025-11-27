@@ -10,13 +10,18 @@ router.post('/google', async (req, res) => {
     const { token } = req.body;
 
     try {
-        // Verify the Google ID token (JWT credential)
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
+        // Fetch user info using access token
+        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
 
-        const payload = ticket.getPayload();
+        if (!response.ok) {
+            throw new Error('Failed to fetch user info');
+        }
+
+        const payload = await response.json();
         const { sub: googleId, email, name } = payload;
 
         let user = await User.findOne({ googleId });

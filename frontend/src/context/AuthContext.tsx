@@ -55,8 +55,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 console.log('Login successful!');
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Login failed:', error);
+                if (error.response) {
+                    console.error('Error response:', error.response.data);
+                    console.error('Error status:', error.response.status);
+                }
             }
         },
         onError: () => console.log('Login Failed'),

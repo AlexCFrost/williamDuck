@@ -9,6 +9,14 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 router.post('/google', async (req, res) => {
     const { token } = req.body;
 
+    // Check DB connection
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(500).json({
+            message: 'Database not connected',
+            readyState: mongoose.connection.readyState
+        });
+    }
+
     try {
         // Fetch user info using access token
         const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -40,7 +48,12 @@ router.post('/google', async (req, res) => {
         res.status(200).json({ token: jwtToken, user });
     } catch (error) {
         console.error('Auth error:', error);
-        res.status(401).json({ message: 'Authentication failed' });
+        // Return the specific error message for debugging
+        res.status(500).json({
+            message: 'Authentication failed',
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

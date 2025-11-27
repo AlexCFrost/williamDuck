@@ -124,4 +124,21 @@ router.get('/:id', authenticate, async (req, res) => {
     }
 });
 
+// Delete a story
+router.delete('/:id', authenticate, async (req, res) => {
+    try {
+        await connectDB();
+        const story = await Story.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+
+        if (!story) {
+            return res.status(404).json({ message: 'Story not found or unauthorized' });
+        }
+
+        res.status(200).json({ message: 'Story deleted successfully' });
+    } catch (error) {
+        console.error('Delete story error:', error);
+        res.status(500).json({ message: 'Failed to delete story' });
+    }
+});
+
 module.exports = router;

@@ -137,6 +137,19 @@ export default function StoryPage() {
         });
     };
 
+    const handleDelete = async (e: React.MouseEvent, storyId: string) => {
+        e.stopPropagation(); // Prevent opening the story
+        if (!confirm('Are you sure you want to delete this story? This action cannot be undone.')) return;
+
+        try {
+            await api.delete(`/story/${storyId}`);
+            setSavedStories(savedStories.filter(s => s._id !== storyId));
+        } catch (error) {
+            console.error('Failed to delete story:', error);
+            alert('Failed to delete story');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Header / User Bar */}
@@ -172,13 +185,24 @@ export default function StoryPage() {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                             {savedStories.map((s) => (
-                                <div key={s._id} onClick={() => loadStory(s)} className="cursor-pointer">
-                                    <Card className="bg-gray-900 border-gray-800 hover:border-gray-600 transition-colors p-6">
-                                        <h3 className="text-xl font-bold text-white mb-2">{s.title}</h3>
-                                        <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+                                <div key={s._id} onClick={() => loadStory(s)} className="cursor-pointer relative group">
+                                    <Card className="bg-gray-900 border-gray-800 hover:border-gray-600 transition-colors p-6 h-full flex flex-col">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="text-xl font-bold text-white line-clamp-1">{s.title}</h3>
+                                            <button
+                                                onClick={(e) => handleDelete(e, s._id)}
+                                                className="text-gray-500 hover:text-red-500 transition-colors p-1"
+                                                title="Delete Story"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <p className="text-gray-400 text-sm mb-4 line-clamp-3 flex-grow">
                                             {s.scenes[0]?.segments.find(seg => seg.type === 'narrative')?.text || 'No preview available.'}
                                         </p>
-                                        <div className="flex justify-between items-center text-xs text-gray-500">
+                                        <div className="flex justify-between items-center text-xs text-gray-500 mt-auto pt-4 border-t border-gray-800">
                                             <span>{s.characters.length} Characters</span>
                                             <span>{s.scenes.length} Scenes</span>
                                         </div>
